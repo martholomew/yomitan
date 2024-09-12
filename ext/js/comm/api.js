@@ -147,10 +147,11 @@ export class API {
      * @param {import('api').ApiParam<'getTermAudioInfoList', 'source'>} source
      * @param {import('api').ApiParam<'getTermAudioInfoList', 'term'>} term
      * @param {import('api').ApiParam<'getTermAudioInfoList', 'reading'>} reading
+     * @param {import('api').ApiParam<'getTermAudioInfoList', 'languageSummary'>} languageSummary
      * @returns {Promise<import('api').ApiReturn<'getTermAudioInfoList'>>}
      */
-    getTermAudioInfoList(source, term, reading) {
-        return this._invoke('getTermAudioInfoList', {source, term, reading});
+    getTermAudioInfoList(source, term, reading, languageSummary) {
+        return this._invoke('getTermAudioInfoList', {source, term, reading, languageSummary});
     }
 
     /**
@@ -395,7 +396,7 @@ export class API {
                             resolve(/** @type {import('api').ApiReturn<TAction>} */ (result));
                         }
                     } else {
-                        const message = response === null ? 'Unexpected null response' : `Unexpected response of type ${typeof response}`;
+                        const message = response === null ? 'Unexpected null response. You may need to refresh the page.' : `Unexpected response of type ${typeof response}. You may need to refresh the page.`;
                         reject(new Error(`${message} (${JSON.stringify(data)})`));
                     }
                 });

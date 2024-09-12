@@ -41,6 +41,9 @@ export type Options = {
     preventMiddleMouse?: boolean;
     matchTypePrefix?: boolean;
     sentenceParsingOptions?: SentenceParsingOptions;
+    scanAltText?: boolean;
+    scanWithoutMousemove?: boolean;
+    scanResolution?: string;
 };
 
 export type InputOptionsOuter = {
@@ -122,6 +125,7 @@ export type Events = {
         textSource: TextSource.TextSource;
         optionsContext: Settings.OptionsContext;
         detail: SearchResultDetail;
+        pageTheme: 'dark' | 'light';
     };
     searchEmpty: {
         inputInfo: InputInfo;

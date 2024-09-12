@@ -22,12 +22,13 @@ import {LanguageTransformer} from '../ext/js/language/language-transformer.js';
 const languageTransformer = new LanguageTransformer();
 languageTransformer.addDescriptor(japaneseTransforms);
 
-describe('language transformer', () => {
+describe('japanese language transformer', () => {
     describe('basic tests', () => {
         const adjectiveInflections = [
             '愛しい',
             '愛しそう',
             '愛しすぎる',
+            '愛し過ぎる',
             '愛しかったら',
             '愛しかったり',
             '愛しくて',
@@ -37,7 +38,7 @@ describe('language transformer', () => {
             '愛しかった',
             '愛しくありません',
             '愛しくありませんでした',
-            '愛しき'
+            '愛しき',
         ];
 
         const verbInflections = [
@@ -49,6 +50,7 @@ describe('language transformer', () => {
             '食べられる',
             '食べられる',
             '食べさせる',
+            '食べさす',
             '食べさせられる',
             '食べろ',
             '食べない',
@@ -59,6 +61,7 @@ describe('language transformer', () => {
             '食べられない',
             '食べられない',
             '食べさせない',
+            '食べささない',
             '食べさせられない',
             '食べ',
             '食べれば',
@@ -67,6 +70,7 @@ describe('language transformer', () => {
             '食べなさい',
             '食べそう',
             '食べすぎる',
+            '食べ過ぎる',
             '食べたい',
             '食べたら',
             '食べたり',
@@ -74,20 +78,37 @@ describe('language transformer', () => {
             '食べぬ',
             '食べ',
             '食べましょう',
+            '食べましょっか',
             '食べよう',
+            '食べよっか',
+            '食べるまい',
+            '食べまい',
+            '食べておく',
             '食べとく',
+            '食べないでおく',
+            '食べないどく',
             '食べている',
             '食べておる',
             '食べてる',
             '食べとる',
-            '食べてしまう'
+            '食べてしまう',
+            '食べん',
+            '食べんかった',
+            '食べんばかり',
+            '食べんとする',
+            '食べますまい',
+            '食べましたら',
+            '食べますれば',
+            '食べませんかった',
         ];
 
         const inflectionCombinations = [
             '抱き抱えていなければ',
             '抱きかかえていなければ',
             '打ち込んでいませんでした',
-            '食べさせられたくなかった'
+            '食べさせられたくなかった',
+            '食べんとしませんかった',
+            '食べないどきたくありません',
         ];
 
         const kuruInflections = [
@@ -99,6 +120,7 @@ describe('language transformer', () => {
             'こられる',
             'こられる',
             'こさせる',
+            'こさす',
             'こさせられる',
             'こい',
             'こない',
@@ -109,6 +131,7 @@ describe('language transformer', () => {
             'こられない',
             'こられない',
             'こさせない',
+            'こささない',
             'こさせられない',
             'くるな',
             'きまして',
@@ -118,6 +141,7 @@ describe('language transformer', () => {
             'きなさい',
             'きそう',
             'きすぎる',
+            'き過ぎる',
             'きたい',
             'きたら',
             'きたり',
@@ -127,13 +151,28 @@ describe('language transformer', () => {
             'こねば',
             'き',
             'きましょう',
+            'きましょっか',
             'こよう',
+            'こよっか',
+            'くるまい',
+            'こまい',
+            'きておく',
             'きとく',
+            'こないでおく',
+            'こないどく',
             'きている',
             'きておる',
             'きてる',
             'きとる',
-            'きてしまう'
+            'きてしまう',
+            'こん',
+            'こんかった',
+            'こんばかり',
+            'こんとする',
+            'きますまい',
+            'きましたら',
+            'きますれば',
+            'きませんかった',
         ];
 
         const suruInflections = [
@@ -147,6 +186,7 @@ describe('language transformer', () => {
             'せられる',
             'される',
             'させる',
+            'さす',
             'せさせる',
             'させられる',
             'せさせられる',
@@ -160,6 +200,7 @@ describe('language transformer', () => {
             'されない',
             'させない',
             'せさせない',
+            'ささない',
             'させられない',
             'せさせられない',
             'するな',
@@ -170,6 +211,7 @@ describe('language transformer', () => {
             'しなさい',
             'しそう',
             'しすぎる',
+            'し過ぎる',
             'したい',
             'したら',
             'したり',
@@ -178,13 +220,28 @@ describe('language transformer', () => {
             'せざる',
             'せねば',
             'しましょう',
+            'しましょっか',
             'しよう',
+            'しよっか',
+            'するまい',
+            'しまい',
+            'しておく',
             'しとく',
+            'しないでおく',
+            'しないどく',
             'している',
             'しておる',
             'してる',
             'しとる',
-            'してしまう'
+            'してしまう',
+            'せん',
+            'せんかった',
+            'せんばかり',
+            'せんとする',
+            'しますまい',
+            'しましたら',
+            'しますれば',
+            'しませんかった',
         ];
 
         const kansaibenInflections = [
@@ -195,18 +252,19 @@ describe('language transformer', () => {
             '買わへんかった',
             '買うて',
             '買うた',
-            '買うたら'
+            '買うたら',
+            '買うたり',
         ];
 
         const basicTransformations = [...adjectiveInflections, ...verbInflections, ...inflectionCombinations];
-        bench(`transformations (n=${basicTransformations.length})`, () => {
+        bench(`japanese transformations (n=${basicTransformations.length})`, () => {
             for (const transform of basicTransformations) {
                 languageTransformer.transform(transform);
             }
         });
 
         const transformationsFull = [...basicTransformations, ...kuruInflections, ...suruInflections, ...kansaibenInflections];
-        bench(`transformations-full (n=${transformationsFull.length})`, () => {
+        bench(`japanese transformations-full (n=${transformationsFull.length})`, () => {
             for (const transform of transformationsFull) {
                 languageTransformer.transform(transform);
             }

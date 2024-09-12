@@ -15,7 +15,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import type {TextProcessor, BidirectionalConversionPreprocessor} from './language';
+import type {TextProcessor, ReadingNormalizer, BidirectionalConversionPreprocessor} from './language';
 import type {LanguageTransformDescriptor} from './language-transformer';
 import type {SafeAny} from './core';
 
@@ -27,6 +27,7 @@ type LanguageDescriptor<
     TTextPostprocessorDescriptor extends TextProcessorDescriptor = Record<string, never>,
 > = {
     iso: TIso;
+    iso639_3: string;
     name: string;
     exampleText: string;
     /**
@@ -36,6 +37,7 @@ type LanguageDescriptor<
      * If no value is provided, `true` is assumed for all inputs.
      */
     isTextLookupWorthy?: IsTextLookupWorthyFunction;
+    readingNormalizer?: ReadingNormalizer;
     textPreprocessors?: TTextPreprocessorDescriptor;
     textPostprocessors?: TTextPostprocessorDescriptor;
     languageTransforms?: LanguageTransformDescriptor;
@@ -60,6 +62,10 @@ type CapitalizationPreprocessors = {
     decapitalize: TextProcessor<boolean>;
 };
 
+type AlphabeticDiacriticsProcessor = {
+    removeAlphabeticDiacritics: TextProcessor<boolean>;
+};
+
 /**
  * This is a mapping of the iso tag to all of the text processors for that language.
  * Any new language should be added to this object.
@@ -70,6 +76,12 @@ type AllTextProcessors = {
             removeArabicScriptDiacritics: TextProcessor<boolean>;
         };
     };
+    cs: {
+        pre: CapitalizationPreprocessors;
+    };
+    da: {
+        pre: CapitalizationPreprocessors;
+    };
     de: {
         pre: CapitalizationPreprocessors & {
             eszettPreprocessor: BidirectionalConversionPreprocessor;
@@ -79,6 +91,9 @@ type AllTextProcessors = {
         pre: CapitalizationPreprocessors;
     };
     en: {
+        pre: CapitalizationPreprocessors;
+    };
+    eo: {
         pre: CapitalizationPreprocessors;
     };
     es: {
@@ -96,10 +111,9 @@ type AllTextProcessors = {
         pre: CapitalizationPreprocessors;
     };
     grc: {
-        pre: CapitalizationPreprocessors & {
-            removeAlphabeticDiacritics: TextProcessor<boolean>;
-        };
+        pre: CapitalizationPreprocessors & AlphabeticDiacriticsProcessor;
     };
+    hi: Record<string, never>;
     hu: {
         pre: CapitalizationPreprocessors;
     };
@@ -107,18 +121,20 @@ type AllTextProcessors = {
         pre: CapitalizationPreprocessors;
     };
     it: {
-        pre: CapitalizationPreprocessors;
+        pre: CapitalizationPreprocessors & AlphabeticDiacriticsProcessor;
     };
     la: {
-        pre: CapitalizationPreprocessors & {
-            removeAlphabeticDiacritics: TextProcessor<boolean>;
-        };
+        pre: CapitalizationPreprocessors & AlphabeticDiacriticsProcessor;
     };
     lo: Record<string, never>;
+    lv: {
+        pre: CapitalizationPreprocessors;
+    };
     ja: {
         pre: {
             convertHalfWidthCharacters: TextProcessor<boolean>;
             alphabeticToHiragana: TextProcessor<boolean>;
+            normalizeCombiningCharacters: TextProcessor<boolean>;
             alphanumericWidthVariants: BidirectionalConversionPreprocessor;
             convertHiraganaToKatakana: BidirectionalConversionPreprocessor;
             collapseEmphaticSequences: TextProcessor<[collapseEmphatic: boolean, collapseEmphaticFull: boolean]>;
@@ -133,6 +149,10 @@ type AllTextProcessors = {
         };
     };
     km: Record<string, never>;
+    kn: Record<string, never>;
+    mn: {
+        pre: CapitalizationPreprocessors;
+    };
     nl: {
         pre: CapitalizationPreprocessors;
     };
@@ -143,7 +163,7 @@ type AllTextProcessors = {
         pre: CapitalizationPreprocessors;
     };
     ro: {
-        pre: CapitalizationPreprocessors;
+        pre: CapitalizationPreprocessors & AlphabeticDiacriticsProcessor;
     };
     ru: {
         pre: CapitalizationPreprocessors & {
@@ -152,12 +172,12 @@ type AllTextProcessors = {
         };
     };
     sga: {
-        pre: CapitalizationPreprocessors & {
-            removeAlphabeticDiacritics: TextProcessor<boolean>;
-        };
+        pre: CapitalizationPreprocessors & AlphabeticDiacriticsProcessor;
     };
     sh: {
-        pre: CapitalizationPreprocessors;
+        pre: CapitalizationPreprocessors & {
+            removeSerboCroatianAccentMarks: TextProcessor<boolean>;
+        };
     };
     sq: {
         pre: CapitalizationPreprocessors;
@@ -166,11 +186,19 @@ type AllTextProcessors = {
         pre: CapitalizationPreprocessors;
     };
     th: Record<string, never>;
+    tl: {
+        pre: CapitalizationPreprocessors & AlphabeticDiacriticsProcessor;
+    };
     tr: {
         pre: CapitalizationPreprocessors;
     };
-    vi: {
+    uk: {
         pre: CapitalizationPreprocessors;
+    };
+    vi: {
+        pre: CapitalizationPreprocessors & {
+            normalizeDiacritics: TextProcessor<'old' | 'new' | 'off'>;
+        };
     };
     yue: Record<string, never>;
     zh: Record<string, never>;

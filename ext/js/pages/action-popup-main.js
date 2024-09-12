@@ -16,9 +16,9 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+import {ThemeController} from '../app/theme-controller.js';
 import {Application} from '../application.js';
 import {getAllPermissions, hasRequiredPermissionsForOptions} from '../data/permissions-util.js';
-import {querySelectorNotNull} from '../dom/query-selector.js';
 import {HotkeyHelpController} from '../input/hotkey-help-controller.js';
 
 class DisplayController {
@@ -30,10 +30,14 @@ class DisplayController {
         this._api = api;
         /** @type {?import('settings').Options} */
         this._optionsFull = null;
+        /** @type {ThemeController} */
+        this._themeController = new ThemeController(document.documentElement);
     }
 
     /** */
     async prepare() {
+        this._themeController.prepare();
+
         const manifest = chrome.runtime.getManifest();
 
         this._showExtensionInfo(manifest);
@@ -57,14 +61,16 @@ class DisplayController {
         this._setupButtonEvents('.action-open-permissions', null, chrome.runtime.getURL('/permissions.html'));
 
         const {profiles, profileCurrent} = optionsFull;
-        const primaryProfile = (profileCurrent >= 0 && profileCurrent < profiles.length) ? profiles[profileCurrent] : null;
-        if (primaryProfile !== null) {
-            this._setupOptions(primaryProfile);
+        const defaultProfile = (profileCurrent >= 0 && profileCurrent < profiles.length) ? profiles[profileCurrent] : null;
+        if (defaultProfile !== null) {
+            this._setupOptions(defaultProfile);
         }
 
-        /** @type {HTMLElement} */
-        const profileSelect = querySelectorNotNull(document, '.action-select-profile');
-        profileSelect.hidden = (profiles.length <= 1);
+        /** @type {NodeListOf<HTMLElement>} */
+        const profileSelect = document.querySelectorAll('.action-select-profile');
+        for (let i = 0; i < profileSelect.length; i++) {
+            profileSelect[i].hidden = (profiles.length <= 1);
+        }
 
         this._updateProfileSelect(profiles, profileCurrent);
 
@@ -201,6 +207,10 @@ class DisplayController {
         }
         void this._updateDictionariesEnabledWarnings(options);
         void this._updatePermissionsWarnings(options);
+
+        this._themeController.theme = options.general.popupTheme;
+        this._themeController.siteOverride = true;
+        this._themeController.updateTheme();
     }
 
     /** */
@@ -209,9 +219,9 @@ class DisplayController {
         await hotkeyHelpController.prepare(this._api);
 
         const {profiles, profileCurrent} = /** @type {import('settings').Options} */ (this._optionsFull);
-        const primaryProfile = (profileCurrent >= 0 && profileCurrent < profiles.length) ? profiles[profileCurrent] : null;
-        if (primaryProfile !== null) {
-            hotkeyHelpController.setOptions(primaryProfile.options);
+        const defaultProfile = (profileCurrent >= 0 && profileCurrent < profiles.length) ? profiles[profileCurrent] : null;
+        if (defaultProfile !== null) {
+            hotkeyHelpController.setOptions(defaultProfile.options);
         }
 
         hotkeyHelpController.setupNode(document.documentElement);
@@ -222,23 +232,25 @@ class DisplayController {
      * @param {number} profileCurrent
      */
     _updateProfileSelect(profiles, profileCurrent) {
-        /** @type {HTMLSelectElement} */
-        const select = querySelectorNotNull(document, '#profile-select');
-        /** @type {HTMLElement} */
-        const optionGroup = querySelectorNotNull(document, '#profile-select-option-group');
-        const fragment = document.createDocumentFragment();
-        for (let i = 0, ii = profiles.length; i < ii; ++i) {
-            const {name} = profiles[i];
-            const option = document.createElement('option');
-            option.textContent = name;
-            option.value = `${i}`;
-            fragment.appendChild(option);
-        }
-        optionGroup.textContent = '';
-        optionGroup.appendChild(fragment);
-        select.value = `${profileCurrent}`;
+        /** @type {NodeListOf<HTMLSelectElement>} */
+        const selects = document.querySelectorAll('.profile-select');
+        /** @type {NodeListOf<HTMLElement>} */
+        const optionGroups = document.querySelectorAll('.profile-select-option-group');
+        for (let i = 0; i < Math.min(selects.length, optionGroups.length); i++) {
+            const fragment = document.createDocumentFragment();
+            for (let j = 0, jj = profiles.length; j < jj; ++j) {
+                const {name} = profiles[j];
+                const option = document.createElement('option');
+                option.textContent = name;
+                option.value = `${j}`;
+                fragment.appendChild(option);
+            }
+            optionGroups[i].textContent = '';
+            optionGroups[i].appendChild(fragment);
+            selects[i].value = `${profileCurrent}`;
 
-        select.addEventListener('change', this._onProfileSelectChange.bind(this), false);
+            selects[i].addEventListener('change', this._onProfileSelectChange.bind(this), false);
+        }
     }
 
     /**
@@ -248,21 +260,21 @@ class DisplayController {
         const node = /** @type {HTMLInputElement} */ (event.currentTarget);
         const value = Number.parseInt(node.value, 10);
         if (typeof value === 'number' && Number.isFinite(value) && value >= 0 && value <= /** @type {import('settings').Options} */ (this._optionsFull).profiles.length) {
-            void this._setPrimaryProfileIndex(value);
+            void this._setDefaultProfileIndex(value);
         }
     }
 
     /**
      * @param {number} value
      */
-    async _setPrimaryProfileIndex(value) {
+    async _setDefaultProfileIndex(value) {
         /** @type {import('settings-modifications').ScopedModificationSet} */
         const modification = {
             action: 'set',
             path: 'profileCurrent',
             value,
             scope: 'global',
-            optionsContext: null
+            optionsContext: null,
         };
         await this._api.modifySettings([modification], 'action-popup');
     }

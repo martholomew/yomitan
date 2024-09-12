@@ -106,6 +106,9 @@ export type GeneralOptions = {
     debugInfo: boolean;
     maxResults: number;
     showAdvanced: boolean;
+    fontFamily: string;
+    fontSize: number;
+    lineHeight: string;
     popupDisplayMode: PopupDisplayMode;
     popupWidth: number;
     popupHeight: number;
@@ -119,6 +122,7 @@ export type GeneralOptions = {
     popupScaleRelativeToPageZoom: boolean;
     popupScaleRelativeToVisualViewport: boolean;
     showGuide: boolean;
+    enableContextMenuScanSelected: boolean;
     compactTags: boolean;
     glossaryLayoutMode: GlossaryLayoutMode;
     mainDictionary: string;
@@ -141,6 +145,7 @@ export type GeneralOptions = {
     termDisplayMode: TermDisplayMode;
     sortFrequencyDictionary: string | null;
     sortFrequencyDictionaryOrder: SortFrequencyDictionaryOrder;
+    stickySearchHeader: boolean;
 };
 
 export type PopupWindowOptions = {
@@ -189,6 +194,9 @@ export type ScanningOptions = {
     hidePopupOnCursorExit: boolean;
     hidePopupOnCursorExitDelay: number;
     normalizeCssZoom: boolean;
+    scanAltText: boolean;
+    scanWithoutMousemove: boolean;
+    scanResolution: string;
 };
 
 export type ScanningInput = {
@@ -256,12 +264,14 @@ export type DictionariesOptions = DictionaryOptions[];
 
 export type DictionaryOptions = {
     name: string;
+    alias: string;
     priority: number;
     enabled: boolean;
     allowSecondarySearches: boolean;
     definitionsCollapsible: DictionaryDefinitionsCollapsible;
     partsOfSpeechFilter: boolean;
     useDeinflections: boolean;
+    styles?: string;
 };
 
 export type ParsingOptions = {
@@ -381,7 +391,7 @@ export type PopupWindowType = 'normal' | 'popup';
 
 export type PopupWindowState = 'normal' | 'maximized' | 'fullscreen';
 
-export type AudioSourceType = 'jpod101' | 'jpod101-alternate' | 'jisho' | 'text-to-speech' | 'text-to-speech-reading' | 'custom' | 'custom-json';
+export type AudioSourceType = 'jpod101' | 'language-pod-101' | 'jisho' | 'lingua-libre' | 'wiktionary' | 'text-to-speech' | 'text-to-speech-reading' | 'custom' | 'custom-json';
 
 export type TranslationConvertType = 'false' | 'true' | 'variant';
 

@@ -15,6 +15,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+import {CJK_IDEOGRAPH_RANGES, isCodePointInRange, isCodePointInRanges} from '../CJK-util.js';
+
 
 const HIRAGANA_SMALL_TSU_CODE_POINT = 0x3063;
 const KATAKANA_SMALL_TSU_CODE_POINT = 0x30c3;
@@ -22,53 +24,22 @@ const KATAKANA_SMALL_KA_CODE_POINT = 0x30f5;
 const KATAKANA_SMALL_KE_CODE_POINT = 0x30f6;
 const KANA_PROLONGED_SOUND_MARK_CODE_POINT = 0x30fc;
 
-/** @type {import('japanese-util').CodepointRange} */
+/** @type {import('CJK-util').CodepointRange} */
 const HIRAGANA_RANGE = [0x3040, 0x309f];
-/** @type {import('japanese-util').CodepointRange} */
+/** @type {import('CJK-util').CodepointRange} */
 const KATAKANA_RANGE = [0x30a0, 0x30ff];
 
-/** @type {import('japanese-util').CodepointRange} */
+/** @type {import('CJK-util').CodepointRange} */
 const HIRAGANA_CONVERSION_RANGE = [0x3041, 0x3096];
-/** @type {import('japanese-util').CodepointRange} */
+/** @type {import('CJK-util').CodepointRange} */
 const KATAKANA_CONVERSION_RANGE = [0x30a1, 0x30f6];
 
-/** @type {import('japanese-util').CodepointRange[]} */
+/** @type {import('CJK-util').CodepointRange[]} */
 const KANA_RANGES = [HIRAGANA_RANGE, KATAKANA_RANGE];
-
-/** @type {import('japanese-util').CodepointRange} */
-const CJK_UNIFIED_IDEOGRAPHS_RANGE = [0x4e00, 0x9fff];
-/** @type {import('japanese-util').CodepointRange} */
-const CJK_UNIFIED_IDEOGRAPHS_EXTENSION_A_RANGE = [0x3400, 0x4dbf];
-/** @type {import('japanese-util').CodepointRange} */
-const CJK_UNIFIED_IDEOGRAPHS_EXTENSION_B_RANGE = [0x20000, 0x2a6df];
-/** @type {import('japanese-util').CodepointRange} */
-const CJK_UNIFIED_IDEOGRAPHS_EXTENSION_C_RANGE = [0x2a700, 0x2b73f];
-/** @type {import('japanese-util').CodepointRange} */
-const CJK_UNIFIED_IDEOGRAPHS_EXTENSION_D_RANGE = [0x2b740, 0x2b81f];
-/** @type {import('japanese-util').CodepointRange} */
-const CJK_UNIFIED_IDEOGRAPHS_EXTENSION_E_RANGE = [0x2b820, 0x2ceaf];
-/** @type {import('japanese-util').CodepointRange} */
-const CJK_UNIFIED_IDEOGRAPHS_EXTENSION_F_RANGE = [0x2ceb0, 0x2ebef];
-/** @type {import('japanese-util').CodepointRange} */
-const CJK_COMPATIBILITY_IDEOGRAPHS_RANGE = [0xf900, 0xfaff];
-/** @type {import('japanese-util').CodepointRange} */
-const CJK_COMPATIBILITY_IDEOGRAPHS_SUPPLEMENT_RANGE = [0x2f800, 0x2fa1f];
-/** @type {import('japanese-util').CodepointRange[]} */
-const CJK_IDEOGRAPH_RANGES = [
-    CJK_UNIFIED_IDEOGRAPHS_RANGE,
-    CJK_UNIFIED_IDEOGRAPHS_EXTENSION_A_RANGE,
-    CJK_UNIFIED_IDEOGRAPHS_EXTENSION_B_RANGE,
-    CJK_UNIFIED_IDEOGRAPHS_EXTENSION_C_RANGE,
-    CJK_UNIFIED_IDEOGRAPHS_EXTENSION_D_RANGE,
-    CJK_UNIFIED_IDEOGRAPHS_EXTENSION_E_RANGE,
-    CJK_UNIFIED_IDEOGRAPHS_EXTENSION_F_RANGE,
-    CJK_COMPATIBILITY_IDEOGRAPHS_RANGE,
-    CJK_COMPATIBILITY_IDEOGRAPHS_SUPPLEMENT_RANGE
-];
 
 /**
  * Japanese character ranges, roughly ordered in order of expected frequency.
- * @type {import('japanese-util').CodepointRange[]}
+ * @type {import('CJK-util').CodepointRange[]}
  */
 const JAPANESE_RANGES = [
     HIRAGANA_RANGE,
@@ -90,12 +61,13 @@ const JAPANESE_RANGES = [
     [0xff1a, 0xff1f], // Fullwidth punctuation 2
     [0xff3b, 0xff3f], // Fullwidth punctuation 3
     [0xff5b, 0xff60], // Fullwidth punctuation 4
-    [0xffe0, 0xffee] // Currency markers
+    [0xffe0, 0xffee], // Currency markers
 ];
 
 const SMALL_KANA_SET = new Set('ぁぃぅぇぉゃゅょゎァィゥェォャュョヮ');
 
 const HALFWIDTH_KATAKANA_MAPPING = new Map([
+    ['･', '・--'],
     ['ｦ', 'ヲヺ-'],
     ['ｧ', 'ァ--'],
     ['ｨ', 'ィ--'],
@@ -151,7 +123,7 @@ const HALFWIDTH_KATAKANA_MAPPING = new Map([
     ['ﾚ', 'レ--'],
     ['ﾛ', 'ロ--'],
     ['ﾜ', 'ワ--'],
-    ['ﾝ', 'ン--']
+    ['ﾝ', 'ン--'],
 ]);
 
 const VOWEL_TO_KANA_MAPPING = new Map([
@@ -160,7 +132,7 @@ const VOWEL_TO_KANA_MAPPING = new Map([
     ['u', 'ぅうくぐすずっつづぬふぶぷむゅゆるゥウクグスズッツヅヌフブプムュユルヴ'],
     ['e', 'ぇえけげせぜてでねへべぺめれゑヶェエケゲセゼテデネヘベペメレヱヶヹ'],
     ['o', 'ぉおこごそぞとどのほぼぽもょよろをォオコゴソゾトドノホボポモョヨロヲヺ'],
-    ['', 'のノ']
+    ['', 'のノ'],
 ]);
 
 /** @type {Map<string, string>} */
@@ -182,30 +154,6 @@ for (let i = 0, ii = kana.length; i < ii; i += 3) {
     if (handakuten !== '-') {
         DIACRITIC_MAPPING.set(handakuten, {character, type: 'handakuten'});
     }
-}
-
-
-/**
- * @param {number} codePoint
- * @param {import('japanese-util').CodepointRange} range
- * @returns {boolean}
- */
-function isCodePointInRange(codePoint, [min, max]) {
-    return (codePoint >= min && codePoint <= max);
-}
-
-/**
- * @param {number} codePoint
- * @param {import('japanese-util').CodepointRange[]} ranges
- * @returns {boolean}
- */
-function isCodePointInRanges(codePoint, ranges) {
-    for (const [min, max] of ranges) {
-        if (codePoint >= min && codePoint <= max) {
-            return true;
-        }
-    }
-    return false;
 }
 
 /**
@@ -255,7 +203,7 @@ function segmentizeFurigana(reading, readingNormalized, groups, groupsStart) {
                 reading.substring(textLength),
                 readingNormalized.substring(textLength),
                 groups,
-                groupsStart + 1
+                groupsStart + 1,
             );
             if (segments !== null) {
                 if (reading.startsWith(text)) {
@@ -274,7 +222,7 @@ function segmentizeFurigana(reading, readingNormalized, groups, groupsStart) {
                 reading.substring(i),
                 readingNormalized.substring(i),
                 groups,
-                groupsStart + 1
+                groupsStart + 1,
             );
             if (segments !== null) {
                 if (result !== null) {
@@ -613,6 +561,65 @@ export function getKanaDiacriticInfo(character) {
     return typeof info !== 'undefined' ? {character: info.character, type: info.type} : null;
 }
 
+/**
+ * @param {number} codePoint
+ * @returns {boolean}
+ */
+function dakutenAllowed(codePoint) {
+    // To reduce processing time some characters which shouldn't have dakuten but are highly unlikely to have a combining character attached are included
+    // かがきぎくぐけげこごさざしじすずせぜそぞただちぢっつづてでとはばぱひびぴふぶぷへべぺほ
+    // カガキギクグケゲコゴサザシジスズセゼソゾタダチヂッツヅテデトハバパヒビピフブプヘベペホ
+    return ((codePoint >= 0x304B && codePoint <= 0x3068) ||
+    (codePoint >= 0x306F && codePoint <= 0x307B) ||
+    (codePoint >= 0x30AB && codePoint <= 0x30C8) ||
+    (codePoint >= 0x30CF && codePoint <= 0x30DB));
+}
+
+/**
+ * @param {number} codePoint
+ * @returns {boolean}
+ */
+function handakutenAllowed(codePoint) {
+    // To reduce processing time some characters which shouldn't have handakuten but are highly unlikely to have a combining character attached are included
+    // はばぱひびぴふぶぷへべぺほ
+    // ハバパヒビピフブプヘベペホ
+    return ((codePoint >= 0x306F && codePoint <= 0x307B) ||
+    (codePoint >= 0x30CF && codePoint <= 0x30DB));
+}
+
+/**
+ * @param {string} text
+ * @returns {string}
+ */
+export function normalizeCombiningCharacters(text) {
+    let result = '';
+    let i = text.length - 1;
+    // Ignoring the first character is intentional, it cannot combine with anything
+    while (i > 0) {
+        if (text[i] === '\u3099') {
+            const dakutenCombinee = text[i - 1].codePointAt(0);
+            if (dakutenCombinee && dakutenAllowed(dakutenCombinee)) {
+                result = String.fromCodePoint(dakutenCombinee + 1) + result;
+                i -= 2;
+                continue;
+            }
+        } else if (text[i] === '\u309A') {
+            const handakutenCombinee = text[i - 1].codePointAt(0);
+            if (handakutenCombinee && handakutenAllowed(handakutenCombinee)) {
+                result = String.fromCodePoint(handakutenCombinee + 2) + result;
+                i -= 2;
+                continue;
+            }
+        }
+        result = text[i] + result;
+        i--;
+    }
+    // i === -1 when first two characters are combined
+    if (i === 0) {
+        result = text[0] + result;
+    }
+    return result;
+}
 
 // Furigana distribution
 
@@ -723,31 +730,57 @@ export function distributeFuriganaInflected(term, reading, source) {
 // Miscellaneous
 
 /**
+ * @param {number} codePoint
+ * @returns {boolean}
+ */
+export function isEmphaticCodePoint(codePoint) {
+    return (
+        codePoint === HIRAGANA_SMALL_TSU_CODE_POINT ||
+        codePoint === KATAKANA_SMALL_TSU_CODE_POINT ||
+        codePoint === KANA_PROLONGED_SOUND_MARK_CODE_POINT
+    );
+}
+
+/**
  * @param {string} text
  * @param {boolean} fullCollapse
  * @returns {string}
  */
 export function collapseEmphaticSequences(text, fullCollapse) {
-    let result = '';
-    let collapseCodePoint = -1;
-    for (const char of text) {
-        const c = char.codePointAt(0);
-        if (
-            c === HIRAGANA_SMALL_TSU_CODE_POINT ||
-            c === KATAKANA_SMALL_TSU_CODE_POINT ||
-            c === KANA_PROLONGED_SOUND_MARK_CODE_POINT
-        ) {
-            if (collapseCodePoint !== c) {
-                collapseCodePoint = c;
+    let left = 0;
+    while (left < text.length && isEmphaticCodePoint(/** @type {number} */ (text.codePointAt(left)))) {
+        ++left;
+    }
+    let right = text.length - 1;
+    while (right >= 0 && isEmphaticCodePoint(/** @type {number} */ (text.codePointAt(right)))) {
+        --right;
+    }
+    // Whole string is emphatic
+    if (left > right) {
+        return text;
+    }
+
+    const leadingEmphatics = text.substring(0, left);
+    const trailingEmphatics = text.substring(right + 1);
+    let middle = '';
+    let currentCollapsedCodePoint = -1;
+
+    for (let i = left; i <= right; ++i) {
+        const char = text[i];
+        const codePoint = /** @type {number} */ (char.codePointAt(0));
+        if (isEmphaticCodePoint(codePoint)) {
+            if (currentCollapsedCodePoint !== codePoint) {
+                currentCollapsedCodePoint = codePoint;
                 if (!fullCollapse) {
-                    result += char;
+                    middle += char;
                     continue;
                 }
             }
         } else {
-            collapseCodePoint = -1;
-            result += char;
+            currentCollapsedCodePoint = -1;
+            middle += char;
         }
     }
-    return result;
+
+    return leadingEmphatics + middle + trailingEmphatics;
 }

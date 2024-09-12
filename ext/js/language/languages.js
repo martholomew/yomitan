@@ -22,8 +22,20 @@ import {languageDescriptorMap} from './language-descriptors.js';
  */
 export function getLanguageSummaries() {
     const results = [];
-    for (const {name, iso, exampleText} of languageDescriptorMap.values()) {
-        results.push({name, iso, exampleText});
+    for (const {name, iso, iso639_3, exampleText} of languageDescriptorMap.values()) {
+        results.push({name, iso, iso639_3, exampleText});
+    }
+    return results;
+}
+
+/**
+ * @returns {import('language').LanguageAndReadingNormalizer[]}
+ */
+export function getAllLanguageReadingNormalizers() {
+    const results = [];
+    for (const {iso, readingNormalizer} of languageDescriptorMap.values()) {
+        if (typeof readingNormalizer === 'undefined') { continue; }
+        results.push({iso, readingNormalizer});
     }
     return results;
 }
@@ -40,7 +52,7 @@ export function getAllLanguageTextProcessors() {
         for (const [id, textPreprocessor] of Object.entries(textPreprocessors)) {
             textPreprocessorsArray.push({
                 id,
-                textProcessor: /** @type {import('language').TextProcessor<unknown>} */ (textPreprocessor)
+                textProcessor: /** @type {import('language').TextProcessor<unknown>} */ (textPreprocessor),
             });
         }
         /** @type {import('language').TextProcessorWithId<unknown>[]} */
@@ -48,7 +60,7 @@ export function getAllLanguageTextProcessors() {
         for (const [id, textPostprocessor] of Object.entries(textPostprocessors)) {
             textPostprocessorsArray.push({
                 id,
-                textProcessor: /** @type {import('language').TextProcessor<unknown>} */ (textPostprocessor)
+                textProcessor: /** @type {import('language').TextProcessor<unknown>} */ (textPostprocessor),
             });
         }
         results.push({iso, textPreprocessors: textPreprocessorsArray, textPostprocessors: textPostprocessorsArray});

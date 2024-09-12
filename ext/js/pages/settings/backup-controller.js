@@ -17,6 +17,7 @@
  */
 
 import {Dexie} from '../../../lib/dexie.js';
+import {ThemeController} from '../../app/theme-controller.js';
 import {parseJson} from '../../core/json.js';
 import {log} from '../../core/log.js';
 import {isObjectNotArray} from '../../core/object-utilities.js';
@@ -62,6 +63,9 @@ export class BackupController {
         } catch (e) {
             // NOP
         }
+
+        /** @type {ThemeController} */
+        this._themeController = new ThemeController(document.documentElement);
     }
 
     /** */
@@ -122,7 +126,7 @@ export class BackupController {
             timeSeparator,
             date.getUTCMinutes().toString().padStart(2, '0'),
             timeSeparator,
-            date.getUTCSeconds().toString().padStart(2, '0')
+            date.getUTCSeconds().toString().padStart(2, '0'),
         ];
         return values.slice(0, resolution * 2 - 1).join('');
     }
@@ -152,7 +156,7 @@ export class BackupController {
             environment,
             userAgent: navigator.userAgent,
             permissions,
-            options: optionsFull
+            options: optionsFull,
         };
     }
 
@@ -285,7 +289,7 @@ export class BackupController {
                 e.preventDefault();
                 complete({
                     result: true,
-                    sanitize: element.dataset.importSanitize === 'true'
+                    sanitize: element.dataset.importSanitize === 'true',
                 });
                 modal.setVisible(false);
             };
@@ -524,6 +528,12 @@ export class BackupController {
         // Update dictionaries
         await DictionaryController.ensureDictionarySettings(this._settingsController, void 0, optionsFull, false, false);
 
+        // Update display theme
+        this._themeController.theme = optionsFull.profiles[optionsFull.profileCurrent].options.general.popupTheme;
+        this._themeController.prepare();
+        this._themeController.siteOverride = true;
+        this._themeController.updateTheme();
+
         // Assign options
         try {
             await this._settingsImportSetOptionsFull(optionsFull);
@@ -580,7 +590,7 @@ export class BackupController {
         /** @type {unknown} */
         // @ts-expect-error - The export function is declared as an extension which has no type information.
         const blob = await db.export({
-            progressCallback: this._databaseExportProgressCallback.bind(this)
+            progressCallback: this._databaseExportProgressCallback.bind(this),
         });
         db.close();
         return /** @type {Blob} */ (blob);
@@ -644,7 +654,7 @@ export class BackupController {
     async _importDatabase(_databaseName, file) {
         await this._settingsController.application.api.purgeDatabase();
         await Dexie.import(file, {
-            progressCallback: this._databaseImportProgressCallback.bind(this)
+            progressCallback: this._databaseImportProgressCallback.bind(this),
         });
         void this._settingsController.application.api.triggerDatabaseUpdated('dictionary', 'import');
         this._settingsController.application.triggerStorageChanged();

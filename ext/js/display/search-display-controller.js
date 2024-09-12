@@ -47,6 +47,8 @@ export class SearchDisplayController {
         this._clipboardMonitorEnableCheckbox = querySelectorNotNull(document, '#clipboard-monitor-enable');
         /** @type {HTMLInputElement} */
         this._wanakanaEnableCheckbox = querySelectorNotNull(document, '#wanakana-enable');
+        /** @type {HTMLInputElement} */
+        this._stickyHeaderEnableCheckbox = querySelectorNotNull(document, '#sticky-header-enable');
         /** @type {HTMLSelectElement} */
         this._profileSelect = querySelectorNotNull(document, '#profile-select');
         /** @type {HTMLElement} */
@@ -66,16 +68,16 @@ export class SearchDisplayController {
         /** @type {boolean} */
         this._clipboardMonitorEnabled = false;
         /** @type {import('clipboard-monitor').ClipboardReaderLike} */
-        this.clipboardReaderLike = {
-            getText: this._display.application.api.clipboardGet.bind(this._display.application.api)
+        this._clipboardReaderLike = {
+            getText: this._display.application.api.clipboardGet.bind(this._display.application.api),
         };
         /** @type {ClipboardMonitor} */
-        this._clipboardMonitor = new ClipboardMonitor(this.clipboardReaderLike);
+        this._clipboardMonitor = new ClipboardMonitor(this._clipboardReaderLike);
         /** @type {import('application').ApiMap} */
         this._apiMap = createApiMap([
             ['searchDisplayControllerGetMode', this._onMessageGetMode.bind(this)],
             ['searchDisplayControllerSetMode', this._onMessageSetMode.bind(this)],
-            ['searchDisplayControllerUpdateSearchQuery', this._onExternalSearchUpdate.bind(this)]
+            ['searchDisplayControllerUpdateSearchQuery', this._onExternalSearchUpdate.bind(this)],
         ]);
     }
 
@@ -92,7 +94,7 @@ export class SearchDisplayController {
         this._display.on('contentUpdateStart', this._onContentUpdateStart.bind(this));
 
         this._display.hotkeyHandler.registerActions([
-            ['focusSearchBox', this._onActionFocusSearchBox.bind(this)]
+            ['focusSearchBox', this._onActionFocusSearchBox.bind(this)],
         ]);
 
         this._updateClipboardMonitorEnabled();
@@ -105,8 +107,10 @@ export class SearchDisplayController {
         this._searchBackButton.addEventListener('click', this._onSearchBackButtonClick.bind(this), false);
         this._wanakanaEnableCheckbox.addEventListener('change', this._onWanakanaEnableChange.bind(this));
         window.addEventListener('copy', this._onCopy.bind(this));
+        window.addEventListener('paste', this._onPaste.bind(this));
         this._clipboardMonitor.on('change', this._onClipboardMonitorChange.bind(this));
         this._clipboardMonitorEnableCheckbox.addEventListener('change', this._onClipboardMonitorEnableChange.bind(this));
+        this._stickyHeaderEnableCheckbox.addEventListener('change', this._onStickyHeaderEnableChange.bind(this));
         this._display.hotkeyHandler.on('keydownNonHotkey', this._onKeyDown.bind(this));
 
         const displayOptions = this._display.getOptions();
@@ -182,7 +186,7 @@ export class SearchDisplayController {
     async _onDisplayOptionsUpdated({options}) {
         this._clipboardMonitorEnabled = options.clipboard.enableSearchPageMonitor;
         this._updateClipboardMonitorEnabled();
-        this._updateWanakanaCheckbox(options);
+        this._updateSearchSettings(options);
         this._queryInput.lang = options.general.language;
         await this._updateProfileSelect();
     }
@@ -190,12 +194,13 @@ export class SearchDisplayController {
     /**
      * @param {import('settings').ProfileOptions} options
      */
-    _updateWanakanaCheckbox(options) {
-        const {language, enableWanakana} = options.general;
+    _updateSearchSettings(options) {
+        const {language, enableWanakana, stickySearchHeader} = options.general;
         const wanakanaEnabled = language === 'ja' && enableWanakana;
         this._wanakanaEnableCheckbox.checked = wanakanaEnabled;
         this._wanakanaSearchOption.style.display = language === 'ja' ? '' : 'none';
         this._setWanakanaEnabled(wanakanaEnabled);
+        this._setStickyHeaderEnabled(stickySearchHeader);
     }
 
     /**
@@ -236,7 +241,7 @@ export class SearchDisplayController {
 
     /** */
     _onSearchInput() {
-        this._updateSearchHeight(false);
+        this._updateSearchHeight(true);
     }
 
     /**
@@ -244,8 +249,8 @@ export class SearchDisplayController {
      */
     _onSearchKeydown(e) {
         if (e.isComposing) { return; }
-        const {code} = e;
-        if (!((code === 'Enter' || code === 'NumpadEnter') && !e.shiftKey)) { return; }
+        const {code, key} = e;
+        if (!((code === 'Enter' || key === 'Enter' || code === 'NumpadEnter') && !e.shiftKey)) { return; }
 
         // Search
         const element = /** @type {HTMLElement} */ (e.currentTarget);
@@ -271,7 +276,27 @@ export class SearchDisplayController {
     /** */
     async _onCopy() {
         // Ignore copy from search page
-        this._clipboardMonitor.setPreviousText(document.hasFocus() ? await this.clipboardReaderLike.getText(false) : '');
+        this._clipboardMonitor.setPreviousText(document.hasFocus() ? await this._clipboardReaderLike.getText(false) : '');
+    }
+
+    /**
+     * @param {ClipboardEvent} e
+     */
+    _onPaste(e) {
+        if (e.target === this._queryInput) {
+            return;
+        }
+        e.stopPropagation();
+        e.preventDefault();
+        const text = e.clipboardData?.getData('text');
+        if (!text) {
+            return;
+        }
+        if (this._queryInput.value !== text) {
+            this._queryInput.value = text;
+            this._updateSearchHeight(true);
+            this._search(true, 'new', true, null);
+        }
     }
 
     /** @type {import('application').ApiHandler<'searchDisplayControllerUpdateSearchQuery'>} */
@@ -317,7 +342,7 @@ export class SearchDisplayController {
             path: 'general.enableWanakana',
             value,
             scope: 'profile',
-            optionsContext: this._display.getOptionsContext()
+            optionsContext: this._display.getOptionsContext(),
         };
         void this._display.application.api.modifySettings([modification], 'search');
     }
@@ -329,6 +354,31 @@ export class SearchDisplayController {
         const element = /** @type {HTMLInputElement} */ (e.target);
         const enabled = element.checked;
         void this._setClipboardMonitorEnabled(enabled);
+    }
+
+    /**
+     * @param {Event} e
+     */
+    _onStickyHeaderEnableChange(e) {
+        const element = /** @type {HTMLInputElement} */ (e.target);
+        const value = element.checked;
+        this._setStickyHeaderEnabled(value);
+        /** @type {import('settings-modifications').ScopedModificationSet} */
+        const modification = {
+            action: 'set',
+            path: 'general.stickySearchHeader',
+            value,
+            scope: 'profile',
+            optionsContext: this._display.getOptionsContext(),
+        };
+        void this._display.application.api.modifySettings([modification], 'search');
+    }
+
+    /**
+     * @param {boolean} stickySearchHeaderEnabled
+     */
+    _setStickyHeaderEnabled(stickySearchHeaderEnabled) {
+        this._stickyHeaderEnableCheckbox.checked = stickySearchHeaderEnabled;
     }
 
     /** */
@@ -344,21 +394,21 @@ export class SearchDisplayController {
         const value = Number.parseInt(node.value, 10);
         const optionsFull = await this._display.application.api.optionsGetFull();
         if (typeof value === 'number' && Number.isFinite(value) && value >= 0 && value <= optionsFull.profiles.length) {
-            await this._setPrimaryProfileIndex(value);
+            await this._setDefaultProfileIndex(value);
         }
     }
 
     /**
      * @param {number} value
      */
-    async _setPrimaryProfileIndex(value) {
+    async _setDefaultProfileIndex(value) {
         /** @type {import('settings-modifications').ScopedModificationSet} */
         const modification = {
             action: 'set',
             path: 'profileCurrent',
             value,
             scope: 'global',
-            optionsContext: null
+            optionsContext: null,
         };
         await this._display.application.api.modifySettings([modification], 'search');
     }
@@ -477,7 +527,7 @@ export class SearchDisplayController {
             path: 'clipboard.enableSearchPageMonitor',
             value,
             scope: 'profile',
-            optionsContext: this._display.getOptionsContext()
+            optionsContext: this._display.getOptionsContext(),
         };
         await this._display.application.api.modifySettings([modification], 'search');
     }
@@ -498,7 +548,6 @@ export class SearchDisplayController {
      */
     _canEnableClipboardMonitor() {
         switch (this._searchPersistentStateController.mode) {
-            case 'popup':
             case 'action-popup':
                 return false;
             default:
@@ -517,7 +566,7 @@ export class SearchDisplayController {
                 (granted) => {
                     const e = chrome.runtime.lastError;
                     resolve(!e && granted);
-                }
+                },
             );
         });
     }
@@ -544,20 +593,20 @@ export class SearchDisplayController {
             focus: false,
             historyMode,
             params: {
-                query
+                query,
             },
             state: {
                 focusEntry: 0,
                 optionsContext,
                 url,
                 sentence: {text: query, offset: 0},
-                documentTitle
+                documentTitle,
             },
             content: {
                 dictionaryEntries: void 0,
                 animate,
-                contentOrigin: {tabId, frameId}
-            }
+                contentOrigin: {tabId, frameId},
+            },
         };
         if (!lookup) { details.params.lookup = 'false'; }
         this._display.setContent(details);
@@ -567,14 +616,20 @@ export class SearchDisplayController {
      * @param {boolean} shrink
      */
     _updateSearchHeight(shrink) {
-        const node = this._queryInput;
+        const searchTextbox = this._queryInput;
+        const searchItems = [this._queryInput, this._searchButton, this._searchBackButton];
+
         if (shrink) {
-            node.style.height = '0';
+            for (const searchButton of searchItems) {
+                searchButton.style.height = '0';
+            }
         }
-        const {scrollHeight} = node;
-        const currentHeight = node.getBoundingClientRect().height;
+        const {scrollHeight} = searchTextbox;
+        const currentHeight = searchTextbox.getBoundingClientRect().height;
         if (shrink || scrollHeight >= currentHeight - 1) {
-            node.style.height = `${scrollHeight}px`;
+            for (const searchButton of searchItems) {
+                searchButton.style.height = `${scrollHeight}px`;
+            }
         }
     }
 

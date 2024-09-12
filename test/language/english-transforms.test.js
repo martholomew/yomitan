@@ -28,6 +28,7 @@ const tests = [
         tests: [
             {term: 'cat', source: 'cats',  rule: 'ns', reasons: ['plural']},
             {term: 'cat', source: 'cat\'s',  rule: 'ns', reasons: ['possessive']},
+            {term: 'cat', source: 'cats\'',  rule: 'ns', reasons: ['plural', 'possessive']},
             {term: 'cats', source: 'cats\'',  rule: 'ns', reasons: ['possessive']},
             {term: 'dirt', source: 'dirty',  rule: 'ns', reasons: ['-y']},
             {term: 'haze', source: 'hazy',  rule: 'ns', reasons: ['-y']},
@@ -37,8 +38,8 @@ const tests = [
             {term: 'slip', source: 'slippy',  rule: 'ns', reasons: ['-y']},
             {term: 'star', source: 'starry',  rule: 'ns', reasons: ['-y']},
             {term: 'gas', source: 'gassy',  rule: 'ns', reasons: ['-y']},
-            {term: 'wit', source: 'witty',  rule: 'ns', reasons: ['-y']}
-        ]
+            {term: 'wit', source: 'witty',  rule: 'ns', reasons: ['-y']},
+        ],
     },
     {
         category: 'verbs',
@@ -95,26 +96,28 @@ const tests = [
             {term: 'slip', source: 'slippy',  rule: 'v', reasons: ['-y']},
             {term: 'blur', source: 'blurry',  rule: 'v', reasons: ['-y']},
             {term: 'chat', source: 'chatty',  rule: 'v', reasons: ['-y']},
-            {term: 'learn', source: 'unlearn',  rule: 'v', reasons: ['un-']}
-        ]
+            {term: 'learn', source: 'unlearn',  rule: 'v', reasons: ['un-']},
+        ],
     },
     {
         category: 'phrasal verbs',
         valid: true,
         tests: [
             {term: 'look up', source: 'look something up',  rule: 'v_phr', reasons: ['interposed object']},
+            {term: 'look up', source: 'look it up',  rule: 'v_phr', reasons: ['interposed object']},
+            {term: 'look up', source: 'look one up',  rule: 'v_phr', reasons: ['interposed object']},
             {term: 'look up', source: 'looking up',  rule: 'v_phr', reasons: ['ing']},
             {term: 'look up', source: 'looked up',  rule: 'v_phr', reasons: ['past']},
             {term: 'look up', source: 'looks up',  rule: 'v_phr', reasons: ['3rd pers. sing. pres']},
-            {term: 'look up', source: 'looked something up',  rule: 'v_phr', reasons: ['past', 'interposed object']}
-        ]
+            {term: 'look up', source: 'looked something up',  rule: 'v_phr', reasons: ['past', 'interposed object']},
+        ],
     },
     {
         category: 'adverbs',
         valid: true,
         tests: [
-            {term: 'interestingly', source: 'uninterestingly',  rule: 'adj', reasons: ['un-']}
-        ]
+            {term: 'interestingly', source: 'uninterestingly',  rule: 'adj', reasons: ['un-']},
+        ],
     },
     {
         category: 'adjectives',
@@ -141,9 +144,33 @@ const tests = [
             {term: 'hot', source: 'hottest',  rule: 'adj', reasons: ['superlative']},
             {term: 'quick', source: 'quickly',  rule: 'adj', reasons: ['adverb']},
             {term: 'happy', source: 'happily',  rule: 'adj', reasons: ['adverb']},
-            {term: 'humble', source: 'humbly',  rule: 'adj', reasons: ['adverb']}
-        ]
-    }
+            {term: 'humble', source: 'humbly',  rule: 'adj', reasons: ['adverb']},
+        ],
+    },
+    {
+        category: 'invalid deinflections',
+        valid: false,
+        tests: [
+            {term: 'boss', source: 'bo', rule: 'ns', reasons: ['plural', 'plural']},
+            {term: 'sta', source: 'stable', rule: 'adj', reasons: ['-able']},
+        ],
+    },
+
+    {
+        category: '-able',
+        valid: true,
+        tests: [
+            {term: 'forget', source: 'unforgettable', rule: 'adj', reasons: ['un-', '-able']},
+            {term: 'forget', source: 'forgettable', rule: 'adj', reasons: ['-able']},
+            {term: 'like', source: 'likeable', rule: 'adj', reasons: ['-able']},
+            {term: 'do', source: 'doable', rule: 'adj', reasons: ['-able']},
+            {term: 'desire', source: 'desirable', rule: 'adj', reasons: ['-able']},
+            {term: 'rely', source: 'reliable', rule: 'adj', reasons: ['-able']},
+            {term: 'move', source: 'movable', rule: 'adj', reasons: ['-able']},
+            {term: 'adore', source: 'adorable', rule: 'adj', reasons: ['-able']},
+            {term: 'carry', source: 'carriable', rule: 'adj', reasons: ['-able']},
+        ],
+    },
 ];
 /* eslint-enable @stylistic/no-multi-spaces */
 
